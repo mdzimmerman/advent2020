@@ -1,4 +1,7 @@
-import scala.io.Source
+package org.triclinic.day02
+
+import org.triclinic.Utils
+
 import scala.util.matching.Regex
 
 case class Password(low: Int,
@@ -36,19 +39,22 @@ object Password {
     s.flatMap(Password(_)).toList
 }
 
-val test1 = Password.parseLines(
-  """
-    |1-3 a: abcde
-    |1-3 b: cdefg
-    |2-9 c: ccccccccc
-  """.stripMargin.split("""\n""").toList)
+object Day2 extends App {
+  val test1 = Password.parseLines(Utils.readString(
+    """
+      |1-3 a: abcde
+      |1-3 b: cdefg
+      |2-9 c: ccccccccc
+    """.stripMargin))
 
-for (p <- test1) {
-  println(f"$p => ${p.isValid}, ${p.isValid2}")
+  println(test1)
+  for (p <- test1) {
+    println(f"$p => ${p.isValid}, ${p.isValid2}")
+  }
+  println(test1.count(_.isValid))
+  println(test1.count(_.isValid2))
+
+  val input = Password.parseLines(Utils.readResource("/day02/input.txt"))
+  println(input.count(_.isValid))
+  println(input.count(_.isValid2))
 }
-println(test1.count(_.isValid))
-println(test1.count(_.isValid2))
-
-val input = Password.parseLines(Source.fromFile("input.txt").getLines.toSeq)
-println(input.count(_.isValid))
-println(input.count(_.isValid2))

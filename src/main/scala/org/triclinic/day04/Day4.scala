@@ -1,3 +1,7 @@
+package org.triclinic.day04
+
+import org.triclinic.Utils
+
 import scala.collection.mutable
 import scala.io.Source
 
@@ -75,26 +79,28 @@ object Passport {
   }
 }
 
-println("--- test #1 ---")
-val test1 = Passport.fromFile(Source.fromFile("test1.txt").getLines.toSeq)
-for (t <- test1) {
-  println(s"$t -> ${t.isPresent}")
-}
-println(test1.count(_.isPresent))
+object Day4 extends App {
+  println("--- test #1 ---")
+  val test1 = Passport.fromFile(Utils.readResource("/day04/test1.txt"))
+  for (t <- test1) {
+    println(s"$t -> ${t.isPresent}")
+  }
+  println(test1.count(_.isPresent))
 
-println()
-println("--- test #2 ---")
-val test2 = Passport.fromFile(Source.fromFile("test2.txt").getLines.toSeq)
-for (t <- test2) {
-  println(s"$t")
-  for (r <- t.req)
-    println(s"  $r => ${t.validField(r)}")
-  println(s"  ${t.isValid}")
-}
-println(test2.count(_.isValid))
+  println()
+  println("--- test #2 ---")
+  val test2 = Passport.fromFile(Utils.readResource("/day04/test2.txt"))
+  for (t <- test2) {
+    println(s"$t")
+    for (r <- t.req)
+      println(s"  $r => ${t.validField(r)}")
+    println(s"  ${t.isValid}")
+  }
+  println(test2.count(_.isValid))
 
-println()
-println("--- input ---")
-val input = Passport.fromFile(Source.fromFile("input.txt").getLines.toSeq)
-println(s"isPresent = ${input.count(_.isPresent)}")
-println(s"isValid   = ${input.count(_.isValid)}")
+  println()
+  println("--- input ---")
+  val input = Passport.fromFile(Utils.readResource("/day04/input.txt"))
+  println(s"isPresent = ${input.count(_.isPresent)}")
+  println(s"isValid   = ${input.count(_.isValid)}")
+}
