@@ -82,18 +82,28 @@ object RuleSet {
 }
 
 object Day7 extends App {
+  println("--- test ---")
   val test1 = RuleSet.parseAll(Utils.readResource("/day07/test1.txt"))
+  val test2 = RuleSet.parseAll(Utils.readResource("/day07/test2.txt"))
   for (b <- test1.bags) {
     println(s"$b: ${test1.bagTypesInBag(b)}")
     //println(s" ${test1.bagsInBag(t)}")
   }
+  println("part 1")
   println(s"bag types with shiny gold = ${test1.bagsContainingBagType("shiny gold")}")
-  println()
+  println("part 2")
   for (b <- test1.bags) {
     val dist = test1.bagsInBag(b)
     println(s"$b: $dist, ${dist.values.sum}")
   }
+  println(s"test1: shiny gold has ${test1.bagsInBag("shiny gold").values.sum}")
+  println(s"test2: shiny gold has ${test2.bagsInBag("shiny gold").values.sum}")
 
+  println()
+  println("--- input ---")
   val input = RuleSet.parseAll(Utils.readResource("/day07/input.txt"))
+  println("part 1")
   println(input.bagsContainingBagType("shiny gold").size)
+  println("part 2")
+  println(input.bagsInBag("shiny gold").values.sum)
 }
