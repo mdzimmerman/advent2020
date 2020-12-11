@@ -4,33 +4,27 @@ import org.triclinic.Utils
 
 import scala.collection.mutable
 
-sealed trait Operation
-case object Acc extends Operation
-case object Jmp extends Operation
-case object Nop extends Operation
+sealed trait Instruction
+case class Acc(arg: Int) extends Instruction
+case class Jmp(arg: Int) extends Instruction
+case class Nop(arg: Int) extends Instruction
 
-object Operation {
-  def apply(s: String): Option[Operation] = s match {
-    case "acc" => Some(Acc)
-    case "jmp" => Some(Jmp)
-    case "nop" => Some(Nop)
-    case _ => None
+object AsInt {
+  def unapply(s: String): Option[Int] = try {
+    Some(s.toInt)
+  } catch {
+    case _: java.lang.Exception => None
   }
 }
-
-case class Instruction(operation: Operation, argument: Int)
 
 object Instruction {
   val pattern = """(...) ([-+]\d+)""".r
 
   def apply(s: String): Option[Instruction] = s match {
-    case pattern(opStr, argStr) =>
-      Operation(opStr) match {
-        case Some(op) => Some(Instruction(op, argStr.toInt))
-        case None => None
-      }
-    case _ =>
-      None
+    case pattern("acc", AsInt(arg)) => Some(Acc(arg))
+    case pattern("jmp", AsInt(arg)) => Some(Jmp(arg))
+    case pattern("nop", AsInt(arg)) => Some(Nop(arg))
+    case _ => None
   }
 }
 
@@ -45,12 +39,9 @@ case class Program(instructions: Vector[Instruction]) {
   def genVariants(): Iterator[Program] =
     instructions.indices.toIterator.flatMap{ i =>
       instructions(i) match {
-        case Instruction(Nop, arg) =>
-          Some(Program(instructions.updated(i, Instruction(Jmp, arg))))
-        case Instruction(Jmp, arg) =>
-          Some(Program(instructions.updated(i, Instruction(Nop, arg))))
-        case _ =>
-          None
+        case Nop(arg) => Some(Program(instructions.updated(i, Jmp(arg))))
+        case Jmp(arg) => Some(Program(instructions.updated(i, Nop(arg))))
+        case _ => None
       }
     }
 
@@ -62,12 +53,12 @@ case class Program(instructions: Vector[Instruction]) {
       seen += pointer
       //println(s"$pointer => ${instructions(pointer)}")
       instructions(pointer) match {
-        case Instruction(Acc, arg) =>
+        case Acc(arg) =>
           accumulator += arg
           pointer += 1
-        case Instruction(Jmp, arg) =>
+        case Jmp(arg) =>
           pointer += arg
-        case Instruction(Nop, arg) =>
+        case Nop(arg) =>
           pointer += 1
       }
     }
@@ -100,8 +91,9 @@ object Day8 extends App {
       |jmp -4
       |acc +6
     """.stripMargin))
-  for (i <- test1.instructions)
-    println(i)
+  println(test1)
+  //for (i <- test1.instructions)
+  //  println(i)
   println("part 1")
   println(test1.run())
   println("part 2")
