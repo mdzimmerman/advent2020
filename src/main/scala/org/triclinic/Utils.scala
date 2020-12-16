@@ -14,3 +14,19 @@ object Utils {
     Source.fromInputStream(stream).getLines.toSeq
   }
 }
+
+object AsInt {
+  def unapply(s: String): Option[Int] = try {
+    Some(s.toInt)
+  } catch {
+    case _: java.lang.Exception => None
+  }
+}
+
+object AsLong {
+  def unapply(s: String): Option[Long] = try {
+    Some(s.toLong)
+  } catch {
+    case _: java.lang.Exception => None
+  }
+}
