@@ -2,9 +2,6 @@ package org.triclinic.day19
 
 import org.triclinic.{AsInt, Utils}
 
-import scala.util.matching.Regex
-import scala.util.parsing.combinator.RegexParsers
-
 sealed trait Rule {
   val n: Int
 }
@@ -34,7 +31,6 @@ object Rule {
 
 case class RuleSet(rules: Map[Int, Rule],
                    input: List[String]) {
-  //val regex0: Regex = regex(0)
 
   def regexstr(n: Int): String = {
     rules(n) match {
