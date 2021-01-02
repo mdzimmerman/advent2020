@@ -5,9 +5,44 @@ import org.triclinic.{AsInt, Utils}
 case class Schedule(start: Int, buses: Vector[Option[Int]]) {
   case class Output(bus: Int, waittime: Int, product: Int)
 
+  val remainders: Vector[(Long, Long)] = buses.zipWithIndex.flatMap{
+    case (Some(n), a) => Some(n.toLong -> a.toLong)
+    case (None, _) => None
+  }.sorted.reverse
+
   def part1(): Output = {
     val (waittime, bus) = buses.flatten.map(n => (n-start%n, n)).min
     Output(bus, waittime, waittime*bus)
+  }
+
+  def part2(): Long = {
+    val ns = remainders.map(_._1).toList
+    val is = remainders.map(_._2).toList
+    val as = remainders.map(r => r._1 - r._2).toList
+    val as2 = remainders.map{ case(n,i) =>
+      val r = (n - i) % n
+      if (r < 0)
+        r + n
+      else
+        r
+
+    }.toList
+    println(ns)
+    println(is)
+    println(as)
+    println(as2)
+
+    //return 0
+
+    var x = as2(0)
+    for (i <- 0 until ns.size-1) {
+      val n = (0 to i).map(ns(_)).product
+      while ((x % ns(i+1)) != as2(i+1)) {
+        println(s"x=$x n=$n ni=$i rem=${x % ns(i+1)}")
+        x += n
+      }
+    }
+    x
   }
 }
 
@@ -31,8 +66,10 @@ object Day13 extends App {
       """.stripMargin).filter(_.nonEmpty).toVector)
   println(test1)
   println(test1.part1)
+  println(test1.part2)
 
   val input = Schedule(Utils.readResource("/day13/input.txt").toVector)
   println(input)
   println(input.part1)
+  println(input.part2)
 }
