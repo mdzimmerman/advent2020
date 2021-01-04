@@ -2,6 +2,7 @@ package org.triclinic.day20
 
 import org.triclinic.{AsInt, Utils}
 
+import scala.annotation.tailrec
 import scala.collection.immutable.Queue
 
 case class Tile(id: Int,
@@ -35,15 +36,30 @@ case class Tile(id: Int,
 
   def getHashes() =
     (for (y <- 0 until height; x <- 0 until width if get(x, y) == '#')
-      yield (x, y)).toList
+      yield Pos(x, y)).toList
 
   def rotateCW(): Tile = {
     val widthNew = height
     val heightNew = width
     val dataNew = Array.ofDim[Char](widthNew * heightNew)
-    for (y <- 0 until height; x <- 0 until width)
-      dataNew(y * widthNew + x) = get(y, width-x-1)
+    //println(widthNew, heightNew)
+    for (y <- 0 until heightNew; x <- 0 until widthNew) {
+      //println(x, y)
+      //println(y, width - x - 1)
+      dataNew(y * widthNew + x) = get(y, widthNew - x - 1)
+    }
     Tile(id, dataNew, widthNew, heightNew)
+  }
+
+  final def rotateCW(n: Int): Tile = {
+    @tailrec
+    def f(i: Int, tile: Tile): Tile = {
+      if (i <= 0)
+        tile
+      else
+        f(i-1, tile.rotateCW())
+    }
+    f(n, this.copy())
   }
 
   def flip(): Tile = {
@@ -83,6 +99,26 @@ case class Tile(id: Int,
       println()
     }
   }
+
+  def search(pattern: Tile): List[Pos] = {
+    val pwidth = pattern.width
+    val pheight = pattern.height
+    val phashes = pattern.getHashes()
+    (0 until height-pheight).flatMap{ oy =>
+      (0 until width-pwidth).flatMap{ ox =>
+        val offset = Pos(ox, oy)
+        val hashes = phashes.map(_ + offset)
+        if (hashes.forall(p => data(p.y * height + p.x) == '#'))
+          Some(offset)
+        else
+          None
+      }
+    }.toList
+  }
+
+  def searchAll(pattern: Tile): List[Pos] = {
+    (0 to 3).flatMap(r => search(pattern.rotateCW(r))).toList
+  }
 }
 
 object Tile {
@@ -107,7 +143,9 @@ object Tile {
 
 case class Side(tile1: Int, side1: Int, tile2: Int, side2: Int)
 
-case class Pos(x: Int, y: Int)
+case class Pos(x: Int, y: Int) {
+  def +(other: Pos): Pos = Pos(x + other.x, y + other.y)
+}
 
 case class TileList(tiles: Vector[Tile]) {
   val tileMap: Map[Int, Tile] = tiles.map(t => t.id -> t).toMap
@@ -230,6 +268,48 @@ object TileList {
 }
 
 object Day20 extends App {
+  def testTileMethods(t0: Tile): Unit = {
+    println(s"Tile ${t0.id}:")
+    t0.printGrid()
+    println()
+    println("sides:")
+    for (s <- t0.sides)
+      println(s"  $s")
+    println("sidesRev:")
+    for (s <- t0.sidesRev)
+      println(s"  $s")
+    println("rotate CW:")
+    t0.rotateCW().printGrid()
+    println()
+    println("flip:")
+    t0.flip().printGrid()
+    println()
+    println("joinHoriz:")
+    t0.joinHoriz(t0.flip()).printGrid()
+    println()
+    println("joinVert:")
+    t0.joinVert(t0.rotateCW.rotateCW.flip).printGrid()
+    println("subtile(1,1,8,8):")
+    t0.getSubTile(1, 1, 8, 8).printGrid()
+  }
+
+  def part1(tileList: TileList, s: String): Unit = {
+    println(s"-- part 1 $s --")
+    println(tileList.part1)
+  }
+
+  def part2(tileList: TileList, monster: Tile, s: String): Unit = {
+    println(s"-- part 2 $s --")
+    val assemble = tileList.assemble()
+    assemble.printGrid()
+    val m1 = assemble.searchAll(monster)
+    val m2 = assemble.flip.searchAll(monster)
+    val monsterchars = (m1 ++ m2).length * monster.getHashes().length
+    val allhashes = assemble.data.count(_ == '#')
+    println(allhashes - monsterchars)
+  }
+
+  println("-- monster --")
   val monster = Tile(Utils.readString(
     """Tile 1:
       |                  #.
@@ -238,52 +318,12 @@ object Day20 extends App {
       |""".stripMargin
   ).filter(_.nonEmpty).toList).get
   monster.printGrid()
-  println(monster.getHashes())
-
   val test1 = TileList.parse(Utils.readResource("/day20/test1.txt").toList)
-  val t0 = test1.tiles(0)
-  println(s"Tile ${t0.id}:")
-  t0.printGrid()
-  println()
-  //println("sides:")
-  //for (s <- t0.sides)
-  //  println(s"  $s")
-  //println("sidesRev:")
-  //for (s <- t0.sidesRev)
-  //  println(s"  $s")
-  //println("rotate CW:")
-  //t0.rotateCW().printGrid()
-  //println()
-  //println("flip:")
-  //t0.flip().printGrid()
-  //println()
-  //println("joinHoriz:")
-  //t0.joinHoriz(t0.flip()).printGrid()
-  //println()
-  //println("joinVert:")
-  //t0.joinVert(t0.rotateCW.rotateCW.flip).printGrid()
-  //println("subtile(1,1,8,8):")
-  //t0.getSubTile(1, 1, 8, 8).printGrid()
+  val input = TileList.parse(Utils.readResource("/day20/input.txt").toList)
 
-  println()
-  println(test1.part1)
+  part1(test1, "test")
+  part1(input, "input")
 
-  for (c <- test1.connections)
-    println(c)
-
-  test1.assemble().printGrid()
-  //for ((p, t) <- test1.assemble) {
-  //  println(s"$p -> $t")
-  //}
-
-
-  //val input = TileList.parse(Utils.readResource("/day20/input.txt").toList)
-  //println(input.part1)
-
-  //for (t <- test1.tiles) {
-  //  println(t.grid)
-  //  println(t.getRow(0))
-  //  println(t.getCol(t.width-1))
-  //}
-  //println(test1)
+  part2(test1, monster, "test")
+  part2(input, monster, "input")
 }
