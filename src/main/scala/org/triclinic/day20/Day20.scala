@@ -2,6 +2,8 @@ package org.triclinic.day20
 
 import org.triclinic.{AsInt, Utils}
 
+import scala.collection.immutable.Queue
+
 case class Tile(id: Int,
                 data: Array[Char],
                 width: Int,
@@ -31,6 +33,10 @@ case class Tile(id: Int,
     Tile(id, dataNew, widthNew, heightNew)
   }
 
+  def getHashes() =
+    (for (y <- 0 until height; x <- 0 until width if get(x, y) == '#')
+      yield (x, y)).toList
+
   def rotateCW(): Tile = {
     val widthNew = height
     val heightNew = width
@@ -50,14 +56,13 @@ case class Tile(id: Int,
   def joinHoriz(other: Tile): Tile = {
     if (height != other.height)
       throw new Exception("heights don't match")
-    val widthNew = width + other.width + 1
-    val dataNew = Array.ofDim[Char]((widthNew+1) * height)
+    val widthNew = width + other.width
+    val dataNew = Array.ofDim[Char](widthNew * height)
     for (y <- 0 until height) {
       for (x <- 0 until width)
         dataNew(y * widthNew + x) = get(x, y)
-      dataNew(y * widthNew + width) = ' '
       for (x <- 0 until other.width)
-        dataNew(y * widthNew + width + x + 1) = other.get(x, y)
+        dataNew(y * widthNew + width + x) = other.get(x, y)
     }
     Tile(id, dataNew, widthNew, height)
   }
@@ -102,6 +107,8 @@ object Tile {
 
 case class Side(tile1: Int, side1: Int, tile2: Int, side2: Int)
 
+case class Pos(x: Int, y: Int)
+
 case class TileList(tiles: Vector[Tile]) {
   val tileMap: Map[Int, Tile] = tiles.map(t => t.id -> t).toMap
 
@@ -116,15 +123,103 @@ case class TileList(tiles: Vector[Tile]) {
           .map{ case(k,v) => k -> v.sortBy(a => (a.tile1, a.side1)) }
   }
 
-  val corners = connections.filter{ case(k, v) => v.size == 2 }.keys.toList
+  val corners: List[Int] = connections.filter{ case(k, v) => v.size == 2 }.keys.toList
 
   def part1: Long = {
     println(corners)
     corners.map(_.toLong).product
   }
 
-  def assemble = {
-    tileMap(1951).rotateCW().joinHoriz(tileMap(2729).rotateCW()).printGrid()
+  def getCorner: Tile = {
+    val cornerId = corners.head
+    val corner = tileMap(cornerId)
+    connections(cornerId).map(_.side1) match {
+      case Vector(0, 1) => corner.rotateCW()
+      case Vector(1, 2) => corner
+      case Vector(2, 3) => corner.rotateCW().rotateCW().rotateCW()
+      case Vector(3, 0) => corner.rotateCW().rotateCW()
+    }
+  }
+
+  def search(currTile: Tile,
+             currSide: Int,
+             avail: Set[Int]): Option[Tile] = {
+    def s(): Option[(Tile, Int)] = {
+      for (a <- avail) {
+        val atile = tileMap(a)
+        for (s <- 4 to 7)
+          if (currTile.sidesAll(currSide) == atile.sidesAll(s))
+            return Option((atile, s))
+        val rtile = atile.flip()
+        for (s <- 4 to 7)
+          if (currTile.sidesAll(currSide) == rtile.sidesAll(s))
+            return Option((rtile, s))
+      }
+      None
+    }
+    s() match {
+      case Some((tile, s)) =>
+        currSide match {
+          case 1 =>
+            s match {
+              case 4 => Option(tile.rotateCW().rotateCW().rotateCW())
+              case 5 => Option(tile.rotateCW().rotateCW())
+              case 6 => Option(tile.rotateCW())
+              case 7 => Option(tile)
+            }
+          case 2 =>
+            s match {
+              case 4 => Option(tile)
+              case 5 => Option(tile.rotateCW().rotateCW().rotateCW())
+              case 6 => Option(tile.rotateCW().rotateCW())
+              case 7 => Option(tile.rotateCW())
+            }
+        }
+      case None =>
+        None
+    }
+  }
+
+  def aggregate(border: Queue[(Pos, Tile)],
+               avail: Set[Int],
+               map: Map[Pos, Tile]): Map[Pos, Tile] = {
+    if (avail.isEmpty)
+      map
+    else {
+      val ((posCurr, tileCurr), borderCurr) = border.dequeue
+      val next = (1 to 2).map { d =>
+        val posNext: Pos = d match {
+          case 1 => Pos(posCurr.x+1, posCurr.y)
+          case 2 => Pos(posCurr.x, posCurr.y+1)
+        }
+        search(tileCurr, d, avail) match {
+          case Some(tileNext) => Some(posNext -> tileNext)
+          case None => None
+        }
+      }.flatten
+      val unavail = next.map(_._2.id).toSet
+      aggregate(borderCurr ++ next, avail -- unavail, map ++ next)
+    }
+  }
+
+  def aggregate(): Map[Pos, Tile] = {
+    val pos = Pos(0, 0)
+    val corner = getCorner
+    val avail = tiles.map(_.id).toSet
+    aggregate(Queue(pos -> corner), avail - corner.id, Map(pos -> corner))
+  }
+
+  def assemble(): Tile = {
+    val agg = aggregate()
+    val xmax = agg.keys.map(_.x).max
+    val ymax = agg.keys.map(_.y).max
+    val assemble = (0 to ymax).map(y =>
+      (0 to xmax)
+        .map(x => Pos(x, y))
+        .map(agg(_).getSubTile(1, 1, 8, 8))
+        .reduceLeft(_.joinHoriz(_))
+    ).reduceLeft(_.joinVert(_))
+    assemble
   }
 }
 
@@ -135,6 +230,16 @@ object TileList {
 }
 
 object Day20 extends App {
+  val monster = Tile(Utils.readString(
+    """Tile 1:
+      |                  #.
+      |#    ##    ##    ###
+      | #  #  #  #  #  #...
+      |""".stripMargin
+  ).filter(_.nonEmpty).toList).get
+  monster.printGrid()
+  println(monster.getHashes())
+
   val test1 = TileList.parse(Utils.readResource("/day20/test1.txt").toList)
   val t0 = test1.tiles(0)
   println(s"Tile ${t0.id}:")
@@ -146,17 +251,17 @@ object Day20 extends App {
   //println("sidesRev:")
   //for (s <- t0.sidesRev)
   //  println(s"  $s")
-  println("rotate CW:")
-  t0.rotateCW().printGrid()
-  println()
-  println("flip:")
-  t0.flip().printGrid()
-  println()
-  println("joinHoriz:")
-  t0.joinHoriz(t0.flip()).printGrid()
-  println()
-  println("joinVert:")
-  t0.joinVert(t0.rotateCW.rotateCW.flip).printGrid()
+  //println("rotate CW:")
+  //t0.rotateCW().printGrid()
+  //println()
+  //println("flip:")
+  //t0.flip().printGrid()
+  //println()
+  //println("joinHoriz:")
+  //t0.joinHoriz(t0.flip()).printGrid()
+  //println()
+  //println("joinVert:")
+  //t0.joinVert(t0.rotateCW.rotateCW.flip).printGrid()
   //println("subtile(1,1,8,8):")
   //t0.getSubTile(1, 1, 8, 8).printGrid()
 
@@ -166,7 +271,10 @@ object Day20 extends App {
   for (c <- test1.connections)
     println(c)
 
-  test1.assemble
+  test1.assemble().printGrid()
+  //for ((p, t) <- test1.assemble) {
+  //  println(s"$p -> $t")
+  //}
 
 
   //val input = TileList.parse(Utils.readResource("/day20/input.txt").toList)
