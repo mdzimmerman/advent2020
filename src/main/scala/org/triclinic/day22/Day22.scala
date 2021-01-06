@@ -5,6 +5,34 @@ import org.triclinic.Utils
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
 
+case class Combat(init: Decks) {
+  def next(decks: Decks): Decks = {
+    val (t1, rest1) = decks.deck1.dequeue
+    val (t2, rest2) = decks.deck2.dequeue
+    if (t1 > t2)
+      Decks(rest1.enqueue(t1).enqueue(t2), rest2)
+    else
+      Decks(rest1, rest2.enqueue(t2).enqueue(t1))
+  }
+
+  @tailrec
+  private def play(input: Decks): Decks = {
+    if (input.winner > 0) {
+      input
+    } else {
+      play(next(input))
+    }
+  }
+
+  def play(): Decks = play(init)
+}
+
+case class RecursiveCombat(init: Decks) {
+  def next(decks: Decks): Decks = ???
+
+  def play(): Decks = ???
+}
+
 case class Decks(deck1: Queue[Int], deck2: Queue[Int]) {
   val winner: Int = {
     if (deck2.isEmpty)
@@ -32,25 +60,6 @@ case class Decks(deck1: Queue[Int], deck2: Queue[Int]) {
     }
   }
 
-  def next: Decks = {
-    val (t1, rest1) = deck1.dequeue
-    val (t2, rest2) = deck2.dequeue
-    if (t1 > t2)
-      Decks(rest1.enqueue(t1).enqueue(t2), rest2)
-    else
-      Decks(rest1, rest2.enqueue(t2).enqueue(t1))
-  }
-
-  @tailrec
-  private def playGame(input: Decks): Decks = {
-    if (input.winner > 0) {
-      input
-    } else {
-      playGame(input.next)
-    }
-  }
-
-  def playGame(): Decks = playGame(this)
 }
 
 object Decks {
@@ -76,15 +85,17 @@ object Day22 extends App {
        |7
        |10""".stripMargin))
 
-  println(test1)
-  val test1out = test1.playGame()
-  println(test1out)
-  println(test1out.score)
-  println(test1)
-
   val input = Decks(Utils.readResource("/day22/input.txt"))
-  println(input)
-  val input1out = input.playGame()
-  println(input1out)
-  println(input1out.score)
+
+  def part1(decks: Decks, s: String) = {
+    println(s"-- part 1 ($s) --")
+    val game = Combat(decks)
+    println(decks)
+    val out = game.play()
+    println(out)
+    println(out.score)
+  }
+
+  part1(test1, "test")
+  part1(input, "input")
 }
