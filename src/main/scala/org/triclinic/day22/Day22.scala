@@ -4,6 +4,7 @@ import org.triclinic.Utils
 
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
+import scala.collection.mutable
 
 case class Combat(init: Decks) {
   def next(decks: Decks): Decks = {
@@ -16,34 +17,65 @@ case class Combat(init: Decks) {
   }
 
   @tailrec
-  private def play(input: Decks): Decks = {
-    if (input.winner > 0) {
-      input
-    } else {
+  private def play(input: Decks): Winner = {
+    if (input.deck2.isEmpty)
+      Winner(1, input)
+    else if (input.deck1.isEmpty)
+      Winner(2, input)
+    else
+      play(next(input))
+  }
+
+  def play(): Winner = play(init)
+}
+
+case class RecursiveCombat(init: Decks) {
+  val seen = mutable.HashSet[Decks]()
+
+  def next(input: Decks): Decks = {
+    //println(input)
+    val (t1, rest1) = input.deck1.dequeue
+    val (t2, rest2) = input.deck2.dequeue
+    val winner =
+      if (t1 <= rest1.length && t2 <= rest2.length) {
+        val decksNew = Decks(rest1.take(t1), rest2.take(t2))
+        RecursiveCombat(decksNew).play().winner
+      } else if (t1 > t2) 1 else 2
+    winner match {
+      case 1 => Decks(rest1.enqueue(t1).enqueue(t2), rest2)
+      case 2 => Decks(rest1, rest2.enqueue(t2).enqueue(t1))
+    }
+  }
+
+  @tailrec
+  private def play(input: Decks): Winner = {
+    if (seen.contains(input))
+      Winner(1, input)
+    else if (input.deck2.isEmpty)
+      Winner(1, input)
+    else if (input.deck1.isEmpty)
+      Winner(2, input)
+    else {
+      seen += input
       play(next(input))
     }
   }
 
-  def play(): Decks = play(init)
+  def play(): Winner = play(init)
 }
 
-case class RecursiveCombat(init: Decks) {
-  def next(decks: Decks): Decks = ???
-
-  def play(): Decks = ???
+case class Winner(winner: Int, decks: Decks) {
+  val score: Int = {
+    winner match {
+      case 1 => decks.scoreDeck(decks.deck1)
+      case 2 => decks.scoreDeck(decks.deck2)
+      case _ => 0
+    }
+  }
 }
 
 case class Decks(deck1: Queue[Int], deck2: Queue[Int]) {
-  val winner: Int = {
-    if (deck2.isEmpty)
-      1
-    else if (deck1.isEmpty)
-      2
-    else
-      0
-  }
-
-  private def scoreDeck(q: Queue[Int]): Int = {
+  def scoreDeck(q: Queue[Int]): Int = {
     val ncards = q.length
     q.zipWithIndex.map{ case(n, i) =>
       val out = (ncards-i)*n
@@ -51,15 +83,6 @@ case class Decks(deck1: Queue[Int], deck2: Queue[Int]) {
       out
     }.sum
   }
-
-  val score: Int = {
-    winner match {
-      case 1 => scoreDeck(deck1)
-      case 2 => scoreDeck(deck2)
-      case _ => 0
-    }
-  }
-
 }
 
 object Decks {
@@ -96,6 +119,18 @@ object Day22 extends App {
     println(out.score)
   }
 
+  def part2(decks: Decks, s: String) = {
+    println(s"-- part 2 ($s) --")
+    val game = RecursiveCombat(decks)
+    println(decks)
+    val out = game.play()
+    println(out)
+    println(out.score)
+  }
+
   part1(test1, "test")
   part1(input, "input")
+
+  part2(test1, "test")
+  part2(input, "input")
 }
