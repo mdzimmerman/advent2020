@@ -5,11 +5,12 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 class Node(val n: Int) {
-  var prev: Node = this
   var next: Node = this
 }
 
-class CircularList {
+class CircularList(init: Seq[Int]) {
+  val map = mutable.HashMap[Int, Linked
+  val list = mutable.LinkedList[Int]()
   var head: Option[Node] = None
   var length: Int = 0
   val map: mutable.Map[Int, Node] = mutable.HashMap[Int, Node]()
@@ -21,8 +22,6 @@ class CircularList {
       case Some(h) =>
         val l = h.prev
         l.next = node
-        node.prev = l
-        h.prev = node
         node.next = h
         length += 1
       case None =>
@@ -31,9 +30,13 @@ class CircularList {
     }
   }
 
-  private def (n: Int, curr: Node): Node
+  def insert
 
-  def slice(i: Int, j: Int): CircularList = {
+  def move() = {
+    val p1 = head.get.next
+    val p2 = p1.next
+    val p3 = p2.next
+    val p4 = p3.next
 
   }
 
@@ -50,6 +53,16 @@ class CircularList {
       case None =>
         s"CircularList()"
     }
+  }
+}
+
+object CircularList {
+  def apply(s: String): CircularList = {
+    val list = new CircularList()
+    for (c <- s) {
+      list.append(c.toString.toInt)
+    }
+    list
   }
 }
 
@@ -102,10 +115,12 @@ object Day23 extends App {
 
   println(applyN(input, 100).mkString)
 
-  val c = new CircularList()
+  val c = CircularList("389125467")
   println(c)
-  c.append(1)
-  println(c)
-  c.append(2)
-  println(c)
+  //c.append(1)
+  //c.append(2)
+  //c.append(3)
+  //c.append(4)
+  //c.append(5)
+  //println(c)
 }
