@@ -1,6 +1,57 @@
 package org.triclinic.day23
 
 import scala.annotation.tailrec
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+
+class Node(val n: Int) {
+  var prev: Node = this
+  var next: Node = this
+}
+
+class CircularList {
+  var head: Option[Node] = None
+  var length: Int = 0
+  val map: mutable.Map[Int, Node] = mutable.HashMap[Int, Node]()
+
+  def append(n: Int): Unit = {
+    val node = new Node(n)
+    map(n) = node
+    head match {
+      case Some(h) =>
+        val l = h.prev
+        l.next = node
+        node.prev = l
+        h.prev = node
+        node.next = h
+        length += 1
+      case None =>
+        head = Some(node)
+        length = 1
+    }
+  }
+
+  private def (n: Int, curr: Node): Node
+
+  def slice(i: Int, j: Int): CircularList = {
+
+  }
+
+  override def toString(): String = {
+    head match {
+      case Some(h) =>
+        var curr = h
+        val buffer = new ListBuffer[Int]()
+        for (i <- 0 until length) {
+          buffer.prepend(curr.n)
+          curr = curr.next
+        }
+        s"CircularList(${buffer.reverse.mkString(" ")})"
+      case None =>
+        s"CircularList()"
+    }
+  }
+}
 
 case class State(cups: Vector[Int]) {
   def minus(n: Int): Int = if (n == 1) 9 else n-1
@@ -50,4 +101,11 @@ object Day23 extends App {
   println(applyN(test1, 100).mkString)
 
   println(applyN(input, 100).mkString)
+
+  val c = new CircularList()
+  println(c)
+  c.append(1)
+  println(c)
+  c.append(2)
+  println(c)
 }
