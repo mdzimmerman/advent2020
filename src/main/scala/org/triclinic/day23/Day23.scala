@@ -1,6 +1,70 @@
 package org.triclinic.day23
 
 import scala.annotation.tailrec
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+
+class Node(val n: Int) {
+  var next: Node = this
+}
+
+class CircularList(init: Seq[Int]) {
+  val map = mutable.HashMap[Int, Linked
+  val list = mutable.LinkedList[Int]()
+  var head: Option[Node] = None
+  var length: Int = 0
+  val map: mutable.Map[Int, Node] = mutable.HashMap[Int, Node]()
+
+  def append(n: Int): Unit = {
+    val node = new Node(n)
+    map(n) = node
+    head match {
+      case Some(h) =>
+        val l = h.prev
+        l.next = node
+        node.next = h
+        length += 1
+      case None =>
+        head = Some(node)
+        length = 1
+    }
+  }
+
+  def insert
+
+  def move() = {
+    val p1 = head.get.next
+    val p2 = p1.next
+    val p3 = p2.next
+    val p4 = p3.next
+
+  }
+
+  override def toString(): String = {
+    head match {
+      case Some(h) =>
+        var curr = h
+        val buffer = new ListBuffer[Int]()
+        for (i <- 0 until length) {
+          buffer.prepend(curr.n)
+          curr = curr.next
+        }
+        s"CircularList(${buffer.reverse.mkString(" ")})"
+      case None =>
+        s"CircularList()"
+    }
+  }
+}
+
+object CircularList {
+  def apply(s: String): CircularList = {
+    val list = new CircularList()
+    for (c <- s) {
+      list.append(c.toString.toInt)
+    }
+    list
+  }
+}
 
 case class State(cups: Vector[Int]) {
   def minus(n: Int): Int = if (n == 1) 9 else n-1
@@ -50,4 +114,13 @@ object Day23 extends App {
   println(applyN(test1, 100).mkString)
 
   println(applyN(input, 100).mkString)
+
+  val c = CircularList("389125467")
+  println(c)
+  //c.append(1)
+  //c.append(2)
+  //c.append(3)
+  //c.append(4)
+  //c.append(5)
+  //println(c)
 }
