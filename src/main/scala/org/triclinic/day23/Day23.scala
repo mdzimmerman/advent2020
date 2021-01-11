@@ -1,126 +1,108 @@
 package org.triclinic.day23
 
 import scala.annotation.tailrec
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 
-class Node(val n: Int) {
+case class Node(value: Int) {
+  var prev: Node = this
   var next: Node = this
 }
 
-class CircularList(init: Seq[Int]) {
-  val map = mutable.HashMap[Int, Linked
-  val list = mutable.LinkedList[Int]()
-  var head: Option[Node] = None
-  var length: Int = 0
-  val map: mutable.Map[Int, Node] = mutable.HashMap[Int, Node]()
-
-  def append(n: Int): Unit = {
-    val node = new Node(n)
-    map(n) = node
-    head match {
-      case Some(h) =>
-        val l = h.prev
-        l.next = node
-        node.next = h
-        length += 1
-      case None =>
-        head = Some(node)
-        length = 1
-    }
+class CircularList(var head: Node) {
+  def append(node: Node): Unit = {
+    val prev0 = head.prev
+    prev0.next = node
+    node.prev = prev0
+    node.next = head
+    head.prev = node
   }
 
-  def insert
-
-  def move() = {
-    val p1 = head.get.next
-    val p2 = p1.next
-    val p3 = p2.next
-    val p4 = p3.next
-
+  def rotate: Unit = {
+    head = head.next
   }
 
-  override def toString(): String = {
-    head match {
-      case Some(h) =>
-        var curr = h
-        val buffer = new ListBuffer[Int]()
-        for (i <- 0 until length) {
-          buffer.prepend(curr.n)
-          curr = curr.next
-        }
-        s"CircularList(${buffer.reverse.mkString(" ")})"
-      case None =>
-        s"CircularList()"
-    }
+  def insert(pos: Node, list: CircularList): Unit = {
+    val posNext = pos.next
+    val listEnd = list.head.prev
+
+    pos.next = list.head
+    list.head.prev = pos
+    listEnd.next = posNext
+    posNext.prev = listEnd
   }
+
+  def splice(start: Node, end: Node): CircularList = {
+    val startPrev = start.prev
+    val endNext   = end.next
+    startPrev.next = endNext
+    endNext.prev = startPrev
+    start.prev = end
+    end.next = start
+    new CircularList(start)
+  }
+
+  @tailrec
+  private def values(start: Node,
+                     curr: Node,
+                     out: List[Int]): List[Int] = {
+    if (curr == start)
+      out.reverse
+    else
+      values(start, curr.next, curr.value :: out)
+  }
+
+  def values(start: Node): List[Int] = values(start, start.next, List(start.value))
+
+  def values: List[Int] = values(head)
+
+  override def toString: String =
+    s"CircularList(${values.mkString(", ")})"
 }
 
-object CircularList {
-  def apply(s: String): CircularList = {
-    val list = new CircularList()
-    for (c <- s) {
-      list.append(c.toString.toInt)
-    }
-    list
+case class Cups(s: String) {
+  val (list, map) = buildList(s)
+
+  private def minus(n: Int): Int = if (n == 1) 9 else n-1
+
+  private def buildList(s: String): (CircularList, Map[Int, Node]) = {
+    val nodes = s.map(_.toString.toInt).map(Node.apply)
+    val clist = new CircularList(nodes.head)
+    for (n <- nodes.tail)
+      clist.append(n)
+    (clist, nodes.map(n => n.value -> n).toMap)
   }
-}
 
-case class State(cups: Vector[Int]) {
-  def minus(n: Int): Int = if (n == 1) 9 else n-1
+  def move(n: Int): Unit = {
+    for (_ <- 0 until n) move
+  }
 
-  def next(): State = {
-    val curr = cups(0)
-    val pickup = cups.slice(1, 4)
-    val rest = cups.slice(4, cups.size)
+  def move: Unit = {
+    val s = list.head.next
+    val e = s.next.next
+    val pickup = list.splice(s, e)
+    val pickupSet = pickup.values.toSet
 
-    //println(s"curr=$curr pickup=$pickup rest=$rest")
-    //println()
-
-    var dest = minus(curr)
-    while (pickup.contains(dest)) {
+    var dest = minus(list.head.value)
+    while (pickupSet.contains(dest)) {
       dest = minus(dest)
     }
-    val p = rest.indexOf(dest)
-    val newcups = rest.slice(0, p+1) ++ pickup ++ rest.slice(p+1, rest.size) :+ curr
-    //println(curr, pickup, rest)
-    State(newcups)
+    list.insert(map(dest), pickup)
+    list.rotate
   }
 
-  def mkString: String = {
-    val i = cups.indexOf(1)
-    (cups.slice(i+1, cups.size) ++ cups.slice(0, i)).mkString("")
-  }
+  def state: String = list.values(map(1)).tail.mkString("")
 }
 
 object Day23 extends App {
-  val test1 = State(Vector(3, 8, 9, 1, 2, 5, 4, 6, 7))
-
-  val input = State(Vector(9, 6, 3, 2, 7, 5, 4, 8, 1))
-
-  @tailrec
-  private def applyN(curr: State, n: Int, i: Int): State = {
-    //println(curr)
-    if (i == n)
-      curr
-    else
-      applyN(curr.next(), n, i+1)
-  }
-
-  def applyN(init: State, n: Int): State = applyN(init, n, 0)
+  val test1 = Cups("389125467")
 
   println(test1)
-  println(applyN(test1, 10).mkString)
-  println(applyN(test1, 100).mkString)
+  test1.move(10)
+  println(test1.state)
+  test1.move(90)
+  println(test1.state)
 
-  println(applyN(input, 100).mkString)
-
-  val c = CircularList("389125467")
-  println(c)
-  //c.append(1)
-  //c.append(2)
-  //c.append(3)
-  //c.append(4)
-  //c.append(5)
-  //println(c)
+  val input = Cups("963275481")
+  println(input)
+  input.move(100)
+  println(input.state)
 }
