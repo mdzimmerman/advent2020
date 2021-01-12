@@ -43,14 +43,19 @@ class CircularList(var head: Node) {
   @tailrec
   private def values(start: Node,
                      curr: Node,
+                     max: Int,
                      out: List[Int]): List[Int] = {
-    if (curr == start)
+    if (curr == start || max == 0)
       out.reverse
-    else
-      values(start, curr.next, curr.value :: out)
+    else {
+      val maxnew = if (max < 0) max else max-1
+      values(start, curr.next, maxnew, curr.value :: out)
+    }
   }
 
-  def values(start: Node): List[Int] = values(start, start.next, List(start.value))
+  def values(start: Node, max: Int): List[Int] = values(start, start.next, max-1, List(start.value))
+
+  def values(start: Node): List[Int] = values(start, start.next, -1, List(start.value))
 
   def values: List[Int] = values(head)
 
@@ -58,13 +63,13 @@ class CircularList(var head: Node) {
     s"CircularList(${values.mkString(", ")})"
 }
 
-case class Cups(s: String) {
-  val (list, map) = buildList(s)
+case class Cups(s: String, size: Int) {
+  val (list, map) = buildList()
 
-  private def minus(n: Int): Int = if (n == 1) 9 else n-1
+  private def minus(n: Int): Int = if (n == 1) size else n-1
 
-  private def buildList(s: String): (CircularList, Map[Int, Node]) = {
-    val nodes = s.map(_.toString.toInt).map(Node.apply)
+  private def buildList(): (CircularList, Map[Int, Node]) = {
+    val nodes = (s.map(_.toString.toInt) ++ (10 to size)).map(Node.apply)
     val clist = new CircularList(nodes.head)
     for (n <- nodes.tail)
       clist.append(n)
@@ -93,16 +98,38 @@ case class Cups(s: String) {
 }
 
 object Day23 extends App {
-  val test1 = Cups("389125467")
+  def time[R](block: => R): R = {
+    val t0 = System.nanoTime()
+    val result = block    // call-by-name
+    val t1 = System.nanoTime()
+    println("Elapsed time: " + ((t1 - t0).toFloat / 1000000000.0) + "s")
+    result
+  }
 
-  println(test1)
-  test1.move(10)
-  println(test1.state)
-  test1.move(90)
-  println(test1.state)
+  def part1(in: String, label: String) = {
+    println(s"--- part 1 ($label) ---")
+    val c = Cups(in, 9)
+    println(c)
+    c.move(100)
+    println(c.state)
+  }
 
-  val input = Cups("963275481")
-  println(input)
-  input.move(100)
-  println(input.state)
+  def part2(in: String, label: String) = {
+    println(s"--- part 2 ($label) ---")
+    val c = time { Cups(in, 1000000) }
+    println(c)
+    time { c.move(10000000) }
+    val out = c.list.values(c.map(1), 3).tail
+    println(out)
+    println(out.map(_.toLong).product)
+  }
+
+  val test  = "389125467"
+  val input = "963275481"
+
+  part1(test, "test")
+  part1(input, "input")
+
+  part2(test, "test")
+  part2(input, "input")
 }
